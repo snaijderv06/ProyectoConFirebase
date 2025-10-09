@@ -1,12 +1,17 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet } from "react-native";
+// Importar Button de 'react-native'
+import { View, StyleSheet, Button } from "react-native"; 
 import { db } from "../database/firebaseconfig";
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+// Importar useNavigation
+import { useNavigation } from '@react-navigation/native'; 
 import FormularioClientes from "../components/FormularioClientes";
 import TablaClientes from "../components/TablaClientes";
 
 const Clientes = () => {
   const [clientes, setClientes] = useState([]);
+  // Inicializar useNavigation
+  const navigation = useNavigation(); 
 
   const cargarDatos = async () => {
     try {
@@ -38,6 +43,13 @@ const Clientes = () => {
     <View style={styles.container}>
       <FormularioClientes cargarDatos={cargarDatos} />
       <TablaClientes clientes={clientes} eliminarCliente={eliminarCliente} />
+      
+      {/* Nuevo Botón para navegar a la vista 'Promedio' */}
+      <Button
+        title="Ir a Promedios"
+        // Asegúrate de que 'Promedio' es el nombre de la ruta en tu navegador de pilas
+        onPress={() => navigation.navigate('Promedio')} 
+      /> 
     </View>
   );
 };

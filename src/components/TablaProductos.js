@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import BotonEliminarProducto from './BotonEliminarProducto.js';
 
-const TablaProductos = ({ productos, eliminarProducto }) => {
+const TablaProductos = ({ productos, eliminarProducto, editarProducto }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.titulo}>Tabla de Productos</Text>
@@ -20,7 +20,13 @@ const TablaProductos = ({ productos, eliminarProducto }) => {
           <View key={item.id} style={styles.fila}>
             <Text style={styles.celda}>{item.nombre}</Text>
             <Text style={styles.celda}>{item.precio}</Text>
-            <View style={[styles.celdaAcciones]}>
+            <View style={styles.celdaAcciones}>
+              <TouchableOpacity
+                style={styles.botonEditar}
+                onPress={() => editarProducto(item)}
+              >
+                <Text style={styles.textoBoton}>Editar</Text>
+              </TouchableOpacity>
               <BotonEliminarProducto id={item.id} eliminarProducto={eliminarProducto} />
             </View>
           </View>
@@ -46,15 +52,22 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: '#ccc',
     paddingVertical: 6,
-    alignItems: 'center'
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5', // Ejemplo: fondo gris claro
+    borderWidth: 1, // Ejemplo: borde alrededor de la fila
   },
   encabezado: {
     backgroundColor: '#f0f0f0',
+    paddingVertical: 8, // Padding vertical
+    backgroundColor: '#d3d3d3', // Ejemplo: fondo gris medio
+    padding: 10, // Ejemplo: padding adicional
   },
   celda: {
     flex: 1,
     fontSize: 16,
     textAlign: 'center',
+    borderRightWidth: 1, // Ejemplo: borde derecho
+    borderColor: '#e0e0e0', // Ejemplo: color de borde
   },
   celdaAcciones: {
     flex: 1,
@@ -67,8 +80,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 17,
     textAlign: 'center',
-  }
+    color: '#2c3e50', // Ejemplo: color de texto oscuro
+    fontSize: 18, // Ejemplo: tamaño de fuente aumentado
+  },
+  boton: {
+    padding: 5,
+    borderRadius: 5,
+  },
+  botonEditar: {
+    backgroundColor: '#4CAF50',
+  },
+  textoBoton: {
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
 });
-
 
 export default TablaProductos;
