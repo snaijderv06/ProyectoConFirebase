@@ -7,7 +7,7 @@ import FormularioProductos from "../components/FormularioProductos";
 import TablaProductos from "../components/TablaProductos.js";
 import { useNavigation } from '@react-navigation/native'; 
 
-const Productos = () => {
+const Productos = ({ cerrarSesion }) => { // Recibe cerrarSesion como prop
   const [productos, setProductos] = useState([]);
   const [modoEdicion, setModoEdicion] = useState(false); // Estado para modo edición
   const [productoId, setProductoId] = useState(null);  // ID del producto en edición
@@ -97,6 +97,9 @@ const Productos = () => {
 
   return (
     <View style={styles.container}>
+      {/* Botón Cerrar Sesión encima del formulario */}
+      <Button title="Cerrar Sesión" onPress={cerrarSesion} />
+
       <FormularioProductos
         nuevoProducto={nuevoProducto}
         manejoCambio={manejoCambio}

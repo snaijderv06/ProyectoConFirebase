@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, Text } from "react-native"; 
+import { View, StyleSheet, Text, Button } from "react-native"; 
 import { db } from "../database/firebaseconfig";
 import { collection, getDocs, doc, deleteDoc } from "firebase/firestore"; 
-
+import { useNavigation } from '@react-navigation/native';
 import TituloPromedio from '../components/TituloPromedio';
 import FormularioPromedios from "../components/FormularioPromedios";
 import TablaPromedios from "../components/TablaPromedios"; 
@@ -12,6 +12,8 @@ const Promedio = () => {
   const [promedio, setPromedio] = useState(null); 
   const COLLECTION_NAME = "edades";
   const API_URL = "https://2b8r5n9rz4.execute-api.us-east-2.amazonaws.com//calcular-promedio"; // <--- PERSONALIZA ESTA URL
+
+  const navigation = useNavigation();
 
   const cargarDatos = async () => {
     try {
@@ -80,6 +82,10 @@ const Promedio = () => {
       <TablaPromedios 
         datos={usuarios}
         eliminarUsuario={eliminarUsuario}
+      />
+      <Button
+        title="Ir a Usuarios"
+        onPress={() => navigation.navigate('Usuarios')}
       />
     </View>
   );
