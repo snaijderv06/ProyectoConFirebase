@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from '../src/database/firebaseconfig'; // Ajusta la ruta
+import { auth } from "../src/database/firebaseconfig"// Ajusta la ruta
 import Productos from '../src/views/Productos';
 import Clientes from '../src/views/Clientes';
 import Promedio from '../src/views/Promedio';
