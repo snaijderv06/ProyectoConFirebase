@@ -335,6 +335,10 @@ const exportarDatos = async () => {
         title="Ir a Clientes"
         onPress={() => navigation.navigate('Clientes')} 
       />
+      <Button
+        title="Ir a ProductosRT"
+        onPress={() => navigation.navigate('ProductosRT')} 
+      />
     </View>
   );
 };

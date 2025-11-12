@@ -50,6 +50,10 @@ const Clientes = () => {
         // Asegúrate de que 'Promedio' es el nombre de la ruta en tu navegador de pilas
         onPress={() => navigation.navigate('Promedio')} 
       /> 
+      <Button
+        title="CalcularIMC"
+        onPress={() => navigation.navigate('CalcularIMC')} 
+      /> 
     </View>
   );
 };

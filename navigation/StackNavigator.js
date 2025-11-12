@@ -7,6 +7,8 @@ import Clientes from '../src/views/Clientes';
 import Promedio from '../src/views/Promedio';
 import Usuarios from '../src/views/Usuarios';
 import Login from '../src/components/Login';
+import ProductosRealtime from '../src/views/ProductosRealtime';
+import CalculadoraIMC from '../src/views/CalcularIMC';
 
 const Stack = createStackNavigator();
 
@@ -50,6 +52,8 @@ const StackNavigator = () => {
       <Stack.Screen name="Clientes" component={Clientes} />
       <Stack.Screen name="Promedio" component={Promedio} />
       <Stack.Screen name="Usuarios" component={Usuarios} />
+      <Stack.Screen name="ProductosRT" component={ProductosRealtime} />
+      <Stack.Screen name="CalcularIMC" component={CalculadoraIMC} />
     </Stack.Navigator>
   );
 };
