@@ -1,45 +1,48 @@
 import React from "react";
-import { View, Text, FlatList, StyleSheet, } from "react-native";
+import { View, Text, FlatList, StyleSheet } from "react-native";
 import BotonEliminarCliente from "../components/BotonEliminarCliente";
 
 const TablaUsuarios = ({ usuarios, eliminarUsuario }) => {
-  const renderItem = ({ item }) => (
-    <View style={styles.fila}>
-      <Text style={styles.celda}>{item.nombre}</Text>
-      <Text style={styles.celda}>{item.correo}</Text>
-      <Text style={styles.celda}>{item.telefono}</Text>
-      <Text style={styles.celda}>{item.edad}</Text>
-      <BotonEliminarCliente id={item.id} eliminarCliente={eliminarUsuario} />
-    </View>
-  );
-
   return (
     <View style={styles.container}>
       <View style={styles.encabezado}>
-        <Text style={styles.celda}>Nombre</Text>
-        <Text style={styles.celda}>Correo</Text>
-        <Text style={styles.celda}>Teléfono</Text>
-        <Text style={styles.celda}>Edad</Text>
-        <Text style={styles.celda}>Acción</Text>
+        <Text style={styles.header}>Nombre</Text>
+        <Text style={styles.header}>Correo</Text>
+        <Text style={styles.header}>Teléfono</Text>
+        <Text style={styles.header}>Edad</Text>
+        <Text style={styles.header}>Acción</Text>
       </View>
-      <FlatList
-        data={usuarios}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-      />
+
+      {usuarios.length === 0 ? (
+        <Text style={styles.sinDatos}>No hay usuarios registrados</Text>
+      ) : (
+        <FlatList
+          data={usuarios}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View style={styles.fila}>
+              <Text style={styles.celda}>{item.nombre || "-"}</Text>
+              <Text style={styles.celda}>{item.correo || "-"}</Text>
+              <Text style={styles.celda}>{item.telefono || "-"}</Text>
+              <Text style={styles.celda}>{item.edad || "?"}</Text>
+              <View style={styles.celda}>
+                <BotonEliminarCliente id={item.id} eliminarUsuario={eliminarUsuario} />
+              </View>
+            </View>
+          )}
+        />
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { marginBottom: 20 },
-  encabezado: {
-    flexDirection: "row",
-    backgroundColor: "#f0f0f0",
-    padding: 10,
-  },
-  fila: { flexDirection: "row", padding: 10, borderBottomWidth: 1, borderBottomColor: "#ccc" },
+  container: { marginTop: 20, backgroundColor: "white", borderRadius: 10, overflow: "hidden", elevation: 3 },
+  encabezado: { flexDirection: "row", backgroundColor: "#0066cc", padding: 14 },
+  header: { flex: 1, color: "white", fontWeight: "bold", textAlign: "center" },
+  fila: { flexDirection: "row", padding: 14, borderBottomWidth: 1, borderBottomColor: "#eee" },
   celda: { flex: 1, textAlign: "center" },
+  sinDatos: { textAlign: "center", padding: 30, color: "#888", fontStyle: "italic" },
 });
 
 export default TablaUsuarios;

@@ -1,24 +1,38 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, Button } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Button,
+  Alert,
+  ScrollView,
+  TouchableOpacity,
+} from "react-native";
 import { db } from "../database/firebaseconfig.js";
-import { collection, getDocs, deleteDoc, doc, addDoc, updateDoc, query, where, orderBy, limit, } from "firebase/firestore";
-import ListaProductos from "../components/ListaProductos";
-import FormularioProductos from "../components/FormularioProductos";
-import TablaProductos from "../components/TablaProductos.js";
-import { useNavigation } from '@react-navigation/native'; 
+import {
+  collection,
+  getDocs,
+  deleteDoc,
+  doc,
+  addDoc,
+  updateDoc,
+} from "firebase/firestore";
+import { useNavigation } from "@react-navigation/native";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import * as Clipboard from "expo-clipboard";
+import * as DocumentPicker from "expo-document-picker";
+import XLSX from "xlsx";
 
-const Productos = ({ cerrarSesion }) => { // Recibe cerrarSesion como prop
+import FormularioProductos from "../components/FormularioProductos";
+import TablaProductos from "../components/TablaProductos.js";
+
+const Productos = ({ cerrarSesion }) => {
   const [productos, setProductos] = useState([]);
-  const [modoEdicion, setModoEdicion] = useState(false); // Estado para modo edición
-  const [productoId, setProductoId] = useState(null);  // ID del producto en edición
-  const navigation = useNavigation(); 
-  const [nuevoProducto, setNuevoProducto] = useState({
-    nombre: "",
-    precio: ""
-  });
+  const [modoEdicion, setModoEdicion] = useState(false);
+  const [productoId, setProductoId] = useState(null);
+  const [nuevoProducto, setNuevoProducto] = useState({ nombre: "", precio: "" });
+  const navigation = useNavigation();
 
   const cargarDatos = async () => {
     try {
@@ -29,211 +43,37 @@ const Productos = ({ cerrarSesion }) => { // Recibe cerrarSesion como prop
       }));
       setProductos(data);
     } catch (error) {
-      console.error("Error al obtener documentos:", error);
-    }
-  };
-  
-  const cargarDatosFirebase = async (nombreColeccion) => {
-  if (!nombreColeccion || typeof nombreColeccion !== 'string') {
-    console.error("Error: Se requiere un nombre de colección válido.");
-    return;
-  }
-
-  try {
-    const datosExportados = {};
-
-    // Obtener la referencia a la colección específica
-    const snapshot = await getDocs(collection(db, nombreColeccion));
-
-    // Mapear los documentos y agregarlos al objeto de resultados
-    datosExportados[nombreColeccion] = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-
-    return datosExportados;
-  } catch (error) {
-    console.error(`Error extrayendo datos de la colección '${nombreColeccion}':`, error);
-  }
-};
-
-const exportarDatos = async () => {
-  try {
-    const datos = await cargarDatosFirebase("productos");
-    console.log("Datos cargados:", datos);
-
-    // Formatea los datos para el archivo y el portapapeles
-    const jsonString = JSON.stringify(datos, null, 2);
-    const baseFileName = "datos_firebase.txt";
-
-    // Copiar datos al portapapeles
-    await Clipboard.setStringAsync(jsonString);
-    console.log("Datos (JSON) copiados al portapapeles.");
-
-    // Verificar si la función de compartir está disponible
-    if (!(await Sharing.isAvailableAsync())) {
-      alert("La función Compartir/Guardar no está disponible en tu dispositivo");
-      return;
-    }
-
-    // Guardar el archivo temporalmente
-    const fileUri = FileSystem.cacheDirectory + baseFileName;
-
-    // Escribir el contenido JSON en el caché temporal
-    await FileSystem.writeAsStringAsync(fileUri, jsonString);
-
-    // Abrir el diálogo de compartir
-    await Sharing.shareAsync(fileUri, {
-      mimeType: "text/plain",
-      dialogTitle: "Compartir datos de Firebase (JSON)",
-    });
-
-    alert("Datos copiados al portapapeles y listos para compartir.");
-  } catch (error) {
-    console.error("Error al exportar y compartir:", error);
-    alert("Error al exportar y compartir: " + error.message);
-  }
-};
-
-  const manejoCambio = (nombre, valor) => {
-    setNuevoProducto((prev) => ({
-      ...prev,
-      [nombre]: valor,
-    }));
-  };
-
-  const cargarCiudadesFirebase = async () => {
-    try {
-      const snapshot = await getDocs(collection(db, "ciudades"));
-      const ciudades = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      return ciudades;
-    } catch (error) {
-      console.error("Error extrayendo ciudades:", error);
-      return [];
+      console.error("Error al cargar productos:", error);
     }
   };
 
-  const generarExcel2 = async () => {
-  try {
-    // 1. Cargar ciudades desde Firebase
-    const ciudades = await cargarCiudadesFirebase();
+  useEffect(() => {
+    cargarDatos();
+  }, []);
 
-    // Validar que haya datos
-    if (ciudades.length === 0) {
-      throw new Error("No hay datos en la colección 'ciudades'.");
-    }
-
-    console.log("Ciudades para Excel:", ciudades);
-
-    // 2. Enviar al backend (Lambda)
-    const response = await fetch("https://263h3d7q2f.execute-api.us-east-2.amazonaws.com/generarexcel2  ", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({datos: ciudades }) // Enviar directamente el array
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status}`);
-    }
-
-    // 3. Obtener ArrayBuffer y convertir a base64
-    const arrayBuffer = await response.arrayBuffer();
-    const base64 = arrayBufferToBase64(arrayBuffer);
-
-    // 4. Ruta para guardar el archivo temporalmente
-    const fileUri = FileSystem.documentDirectory + "reporte_ciudades.xlsx";
-
-    // 5. Escribir el archivo Excel
-    await FileSystem.writeAsStringAsync(fileUri, base64, {
-      encoding: FileSystem.EncodingType.Base64
-    });
-
-    // 6. Compartir el archivo
-    if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(fileUri, {
-        mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        dialogTitle: "Descargar Reporte de Ciudades"
-      });
-    } else {
-      alert("Compartir no disponible.");
-    }
-
-    // Éxito
-    alert("Excel de ciudades generado y listo para descargar.");
-
-  } catch (error) {
-    console.error("Error generando Excel:", error);
-    alert("Error: " + error.message);
-  }
-};
-
-  const generarExcel = async () => {
-  try {
-    const datosParaExcel = [
-      { nombre: "Producto A", categoria: "Electrónicos", precio: 100 },
-      { nombre: "Producto B", categoria: "Ropa", precio: 50 },
-      { nombre: "Producto C", categoria: "Electrónicos", precio: 75 }
-    ];
-
-    const response = await fetch("https://263h3d7q2f.execute-api.us-east-2.amazonaws.com/generarexcel", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ datos: datosParaExcel })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status}`);
-    }
-
-    // Obtención de ArrayBuffer y conversión a base64
-    const arrayBuffer = await response.arrayBuffer();
-    const base64 = arrayBufferToBase64(arrayBuffer);
-
-    // Ruta para guardar el archivo temporalmente
-    const fileUri = FileSystem.documentDirectory + "reporte.xlsx";
-
-    // Escribir el archivo Excel en el sistema de archivos
-    await FileSystem.writeAsStringAsync(fileUri, base64, {
-      encoding: FileSystem.EncodingType.Base64
-    });
-
-    // Compartir el archivo generado
-    if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(fileUri, {
-        mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        dialogTitle: "Descargar Reporte Excel"
-      });
-    } else {
-      alert("Compartir no disponible. Revisa la consola para logs.");
-    }
-
-  } catch (error) {
-    console.error("Error generando Excel:", error);
-    alert("Error: " + error.message);
-  }
-};
+  const manejoCambio = (campo, valor) => {
+    setNuevoProducto((prev) => ({ ...prev, [campo]: valor }));
+  };
 
   const guardarProducto = async () => {
+    if (!nuevoProducto.nombre || !nuevoProducto.precio) {
+      Alert.alert("Error", "Todos los campos son obligatorios");
+      return;
+    }
     try {
-      if (nuevoProducto.nombre && nuevoProducto.precio) {
-        await addDoc(collection(db, "productos"), {
-          nombre: nuevoProducto.nombre,
-          precio: parseFloat(nuevoProducto.precio),
-        });
-        cargarDatos(); // Recargar lista
-        setNuevoProducto({ nombre: "", precio: "" });
-      } else {
-        alert("Por favor, complete todos los campos.");
-      }
+      await addDoc(collection(db, "productos"), {
+        nombre: nuevoProducto.nombre.trim(),
+        precio: parseFloat(nuevoProducto.precio),
+      });
+      setNuevoProducto({ nombre: "", precio: "" });
+      cargarDatos();
+      Alert.alert("Éxito", "Producto agregado");
     } catch (error) {
-      console.error("Error al registrar producto:", error);
+      Alert.alert("Error", "No se pudo guardar");
     }
   };
 
-  const editarProducto = (producto) => { // Método para cargar valores al formulario
+  const editarProducto = (producto) => {
     setNuevoProducto({
       nombre: producto.nombre,
       precio: producto.precio.toString(),
@@ -242,109 +82,155 @@ const exportarDatos = async () => {
     setModoEdicion(true);
   };
 
-    const pruebaConsulta1 = async () => {
-    try {
-      const q = query(
-        collection(db, "ciudades"),
-        where("pais", "==", "Guatemala"),
-        orderBy("poblacion", "desc"),
-        limit(2)
-      );
-      const snapshot = await getDocs(q);
-      console.log("---------- Consulta 1 ----------");
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        console.log(`ID: ${doc.id}, Nombre: ${data.nombre}, País: ${data.pais}, Población: ${data.poblacion}`);
-      });
-    } catch (error) {
-      console.error("Error en consulta 1:", error);
-    }
-  };
-  
-
   const actualizarProducto = async () => {
     try {
-      if (nuevoProducto.nombre && nuevoProducto.precio) {
-        await updateDoc(doc(db, "productos", productoId), {
-          nombre: nuevoProducto.nombre,
-          precio: parseFloat(nuevoProducto.precio),
-        });
-        setNuevoProducto({ nombre: "", precio: "" });
-        setModoEdicion(false); // Volver al modo registro
-        setProductoId(null);
-        cargarDatos(); // Recargar lista
-      } else {
-        alert("Por favor, complete todos los campos.");
-      }
+      await updateDoc(doc(db, "productos", productoId), {
+        nombre: nuevoProducto.nombre.trim(),
+        precio: parseFloat(nuevoProducto.precio),
+      });
+      setNuevoProducto({ nombre: "", precio: "" });
+      setModoEdicion(false);
+      setProductoId(null);
+      cargarDatos();
+      Alert.alert("Éxito", "Producto actualizado");
     } catch (error) {
-      console.error("Error al actualizar producto:", error);
+      Alert.alert("Error", "No se pudo actualizar");
     }
   };
-
-  useEffect(() => {
-    cargarDatos();
-    pruebaConsulta1();
-  }, []);
 
   const eliminarProducto = async (id) => {
     try {
       await deleteDoc(doc(db, "productos", id));
-      cargarDatos(); 
+      cargarDatos();
     } catch (error) {
       console.error("Error al eliminar:", error);
     }
   };
 
-  const arrayBufferToBase64 = (buffer) => {
-    let binary = '';
-    const bytes = new Uint8Array(buffer);
-    const len = bytes.byteLength;
-    for (let i = 0; i < len; i++) {
-      binary += String.fromCharCode(bytes[i]);
+  const exportarDatos = async () => {
+    try {
+      const snapshot = await getDocs(collection(db, "productos"));
+      const datos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const jsonString = JSON.stringify(datos, null, 2);
+      const fileUri = FileSystem.cacheDirectory + "productos.json";
+      await FileSystem.writeAsStringAsync(fileUri, jsonString);
+      await Clipboard.setStringAsync(jsonString);
+      await Sharing.shareAsync(fileUri);
+      Alert.alert("Éxito", "Datos exportados");
+    } catch (error) {
+      Alert.alert("Error", "No se pudo exportar");
     }
-    return btoa(binary);
+  };
+
+  const extraerYGuardarMascotas = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ type: "*/*" });
+      if (!result.canceled) {
+        const fileContent = await FileSystem.readAsStringAsync(result.assets[0].uri);
+        const workbook = XLSX.read(fileContent, { type: "base64" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(sheet);
+        Alert.alert("Éxito", `Se leyeron ${data.length} mascotas`);
+        
+      }
+    } catch (error) {
+      Alert.alert("Error", "No se pudo leer el archivo");
+    }
+  };
+
+  // 3. GENERAR EXCEL DE PRODUCTOS
+  const generarExcel = async () => {
+    try {
+      const ws = XLSX.utils.json_to_sheet(productos.map(p => ({ Nombre: p.nombre, Precio: p.precio })));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Productos");
+      const wbout = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+      const uri = FileSystem.cacheDirectory + "productos.xlsx";
+      await FileSystem.writeAsStringAsync(uri, wbout, { encoding: FileSystem.EncodingType.Base64 });
+      await Sharing.shareAsync(uri);
+      Alert.alert("Éxito", "Excel de productos generado");
+    } catch (error) {
+      Alert.alert("Error", "No se pudo generar Excel");
+    }
+  };
+
+  // 4. GENERAR EXCEL DE CIUDADES
+  const generarExcel2 = async () => {
+    try {
+      const snapshot = await getDocs(collection(db, "ciudades"));
+      const ciudades = snapshot.docs.map(doc => doc.data());
+      const ws = XLSX.utils.json_to_sheet(ciudades);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Ciudades");
+      const wbout = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+      const uri = FileSystem.cacheDirectory + "ciudades.xlsx";
+      await FileSystem.writeAsStringAsync(uri, wbout, { encoding: FileSystem.EncodingType.Base64 });
+      await Sharing.shareAsync(uri);
+      Alert.alert("Éxito", "Excel de ciudades generado");
+    } catch (error) {
+      Alert.alert("Error", "No se pudo generar Excel de ciudades");
+    }
   };
 
   return (
-    <View style={styles.container}>
-      {/* Botón Cerrar Sesión encima del formulario */}
-      <Button title="Cerrar Sesión" onPress={cerrarSesion} />
-     <View style={{ marginVertical: 10 }}>
-  <Button title="Exportar" onPress={exportarDatos} />
-</View>
-      <FormularioProductos
-        nuevoProducto={nuevoProducto}
-        manejoCambio={manejoCambio}
-        guardarProducto={modoEdicion ? actualizarProducto : guardarProducto}
-        modoEdicion={modoEdicion} // Pasamos la variable de estado
-        actualizarProducto={actualizarProducto} // Pasamos el método
-      />
-      <ListaProductos productos={productos} editarProducto={editarProducto} />
-      <TablaProductos
-        productos={productos}
-        editarProducto={editarProducto} // Pasamos el método a TablaProductos
-        eliminarProducto={eliminarProducto}
-      />
-      <View style={{ marginVertical: 10 }}>
-  <Button title="Generar Excel de ciudades" onPress={generarExcel2} />
-     </View>
-      <View style={{ marginVertical: 10 }}>
-  <Button title="Generar Excel" onPress={generarExcel} />
-     </View>
-      <Button
-        title="Ir a Clientes"
-        onPress={() => navigation.navigate('Clientes')} 
-      />
-      <Button
-        title="Ir a ProductosRT"
-        onPress={() => navigation.navigate('ProductosRT')} 
-      />
-    </View>
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.titulo}>Gestión de Productos</Text>
+      </View>
+
+      <View style={styles.seccion}>
+        <Text style={styles.subtitulo}>
+          {modoEdicion ? "Editar Producto" : "Agregar Producto"}
+        </Text>
+        <FormularioProductos
+          nuevoProducto={nuevoProducto}
+          manejoCambio={manejoCambio}
+          guardarProducto={modoEdicion ? actualizarProducto : guardarProducto}
+          modoEdicion={modoEdicion}
+        />
+      </View>
+
+      <View style={styles.seccion}>
+        <Text style={styles.subtitulo}>Lista de Productos</Text>
+        <TablaProductos
+          productos={productos}
+          editarProducto={editarProducto}
+          eliminarProducto={eliminarProducto}
+        />
+      </View>
+
+      <View style={styles.seccion}>
+        <Text style={styles.subtitulo}>Acciones</Text>
+        <View style={styles.botonesGrid}>
+          <Button title="Exportar Datos" onPress={exportarDatos} color="#28a745" />
+          <Button title="Extraer Mascotas Excel" onPress={extraerYGuardarMascotas} color="#17a2b8" />
+          <Button title="Generar Excel Productos" onPress={generarExcel} color="#fd7e14" />
+          <Button title="Generar Excel Ciudades" onPress={generarExcel2} color="#ffc107" />
+        </View>
+      </View>
+
+      <View style={styles.seccion}>
+        <Text style={styles.subtitulo}>Navegación</Text>
+        <View style={styles.botonesGrid}>
+          <Button title="Clientes" onPress={() => navigation.navigate("Clientes")} />
+          <Button title="Productos Realtime" onPress={() => navigation.navigate("ProductosRT")} />
+        </View>
+      </View>
+
+      <View style={{ height: 60 }} />
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
+  container: { flex: 1, backgroundColor: "#f8f9fa" },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, paddingTop: 50, backgroundColor: "#0066cc" },
+  titulo: { fontSize: 24, fontWeight: "bold", color: "white" },
+  botonCerrar: { backgroundColor: "#dc3545", paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
+  textoCerrar: { color: "white", fontWeight: "bold" },
+  seccion: { backgroundColor: "white", marginHorizontal: 15, marginTop: 15, padding: 20, borderRadius: 15, elevation: 4 },
+  subtitulo: { fontSize: 18, fontWeight: "bold", marginBottom: 15, color: "#333" },
+  botonesGrid: { gap: 10 },
 });
 
 export default Productos;
